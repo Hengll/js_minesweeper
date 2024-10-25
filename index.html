@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>踩地雷</title>
+    <style>
+        #game-area {
+            width: 400px;
+            height: 400px;
+            outline: 1px solid black;
+        }
+
+        div {
+            width: 10%;
+            height: 10%;
+            outline: 1px solid black;
+            float: left;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="game-area"></div>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js'
+        integrity='sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g=='
+        crossorigin='anonymous'></script>
+    <script>
+        // 隨機函數，最小值/最大值/抽幾個(不重複)
+        const rand = (min, max, n) => {
+            const returnNums = []
+            const nums = Array.from({ length: max - min + 1 }, (value, index) => {
+                return index + 1
+            })
+
+            while (returnNums.length < n) {
+                const random = Math.floor(Math.random() * nums.length)
+                returnNums.push(nums[random])
+                nums.splice(random, 1)
+            }
+            returnNums.sort((a, b) => {
+                return a - b
+            })
+            return returnNums
+        }
+        const minesPos = rand(0, 99, 30)
+
+        for (let i = 0; i < 100; i++) {
+            if (minesPos.includes(i)) {
+                $('#game-area').append('<div>1</div>')
+            }
+            else {
+                $('#game-area').append('<div>0</div>')
+            }
+        }
+    </script>
+</body>
+
+</html>
