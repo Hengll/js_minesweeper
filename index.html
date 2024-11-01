@@ -74,6 +74,16 @@
             display: inline-block;
             width: 200px;
         }
+
+        #fast {
+            margin: 10px 0;
+        }
+
+        #fast div {
+            display: inline-block;
+            width: 200px;
+            color: red;
+        }
     </style>
 </head>
 
@@ -90,6 +100,10 @@
         <div>經過時間: <span id="time-left">0</span> 秒</div>
         <div>剩餘地雷: <span id="mines-left">-</span> 顆</div>
     </div>
+    <div id="fast">
+        <div>最低秒數: <span id="fast-time">-</span> 秒</div>
+        <div>玩家名稱: <span id="fast-name">-</span></div>
+    </div>
     <div id="game-area"></div>
     <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js'
         integrity='sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g=='
@@ -104,6 +118,41 @@
         let mines = 10
         // 預設每列格子數
         let = lattices = 10
+        // 初級最快秒數
+        const eazyFastTime = {
+            name: '-',
+            time: '-'
+        }
+        // 中級最快秒數
+        const normalFastTime = {
+            name: '-',
+            time: '-'
+        }
+        // 高級最快秒數
+        const hardFastTime = {
+            name: '-',
+            time: '-'
+        }
+
+        if (localStorage.eazyMines) {
+            const data = JSON.parse(localStorage.eazyMines)
+            eazyFastTime.name = data.name
+            eazyFastTime.time = data.time
+            $('#fast-name').text(eazyFastTime.name)
+            $('#fast-time').text(eazyFastTime.time)
+        }
+
+        if (localStorage.normalMines) {
+            const data = JSON.parse(localStorage.normalMines)
+            normalFastTime.name = data.name
+            normalFastTime.time = data.time
+        }
+
+        if (localStorage.hardMines) {
+            const data = JSON.parse(localStorage.hardMines)
+            hardFastTime.name = data.name
+            hardFastTime.time = data.time
+        }
 
         // 隨機函數，最小值/最大值/抽幾個(不重複)，回傳陣列
         const rand = (min, max, n) => {
@@ -123,7 +172,7 @@
             return returnNums
         }
 
-        // mine為地雷數量，lattice為每列的格子數
+        // 地雷重置和生成函數，mine為地雷數量，lattice為每列的格子數
         const game = function (mine, lattice) {
             // 決定遊戲區域長寬
             $('#game-area').css('width', `${25 * lattice}px`)
@@ -164,6 +213,7 @@
             const x = parseInt(box.parent().attr('id').match(/x[0-9]+/g)[0].slice(1))
             const y = parseInt(box.parent().attr('id').match(/y[0-9]+/g)[0].slice(1))
 
+            // 計算傳入格子(box)周圍的地雷數量
             for (let i = x - 1; i <= x + 1; i++) {
                 if (i >= 0 && i < 25) {
                     for (let j = y - 1; j <= y + 1; j++) {
@@ -176,7 +226,7 @@
                 }
             }
 
-            // 如果sum=0，採周圍地雷(連鎖踩地雷)
+            // 如果sum=0，繼續採周圍地雷(連鎖踩地雷)
             if (sum === 0) {
                 for (let i = x - 1; i <= x + 1; i++) {
                     if (i >= 0 && i < 25) {
@@ -194,16 +244,21 @@
             return sum
         }
 
-
         // 選擇難度
         $('select').on('input', function () {
             if ($('select').val() === '初級') {
+                $('#fast-name').text(eazyFastTime.name)
+                $('#fast-time').text(eazyFastTime.time)
                 game(10, 10)
             }
             else if ($('select').val() === '中級') {
+                $('#fast-name').text(normalFastTime.name)
+                $('#fast-time').text(normalFastTime.time)
                 game(45, 16)
             }
             else {
+                $('#fast-name').text(hardFastTime.name)
+                $('#fast-time').text(hardFastTime.time)
                 game(99, 25)
             }
         })
@@ -221,6 +276,7 @@
                 time += 0.1
                 $('#time-left').text(Math.floor(time))
 
+                // 如果開到地雷
                 if (!$('.mines').hasClass('closed')) {
                     Swal.fire({
                         title: "炸!!!",
@@ -229,10 +285,64 @@
                     clearInterval(intervalID)
                 }
                 if (!$('.not-mines').hasClass('closed')) {
-                    Swal.fire({
-                        title: "過關",
-                        text: `過關時間 : ${Math.floor(time)} 秒`,
-                    })
+                    if ($('select').val() === '初級' && (time < eazyFastTime.time || eazyFastTime.time === '-')) {
+                        Swal.fire({
+                            title: '初級最低秒數',
+                            text: '請輸入玩家名稱',
+                            input: 'text'
+                        }).then(result => {
+                            console.log(result)
+                            const name = result.value || 'あああああ'
+                            eazyFastTime.name = name
+                            eazyFastTime.time = Math.floor(time)
+
+                            $('#fast-name').text(eazyFastTime.name)
+                            $('#fast-time').text(eazyFastTime.time)
+
+                            localStorage.eazyMines = JSON.stringify(eazyFastTime)
+                        })
+                    }
+                    else if ($('select').val() === '中級' && (time < normalFastTime.time || normalFastTime.time === '-')) {
+                        Swal.fire({
+                            title: '中級最低秒數',
+                            text: '請輸入玩家名稱',
+                            input: 'text'
+                        }).then(result => {
+                            console.log(result)
+                            const name = result.value || 'あああああ'
+                            normalFastTime.name = name
+                            normalFastTime.time = Math.floor(time)
+
+                            $('#fast-name').text(normalFastTime.name)
+                            $('#fast-time').text(normalFastTime.time)
+
+                            localStorage.normalMines = JSON.stringify(normalFastTime)
+                        })
+                    }
+                    else if ($('select').val() === '高級' && (time < hardFastTime.time || hardFastTime.time === '-')) {
+                        Swal.fire({
+                            title: '高級最低秒數',
+                            text: '請輸入玩家名稱',
+                            input: 'text'
+                        }).then(result => {
+                            console.log(result)
+                            const name = result.value || 'あああああ'
+                            hardFastTime.name = name
+                            hardFastTime.time = Math.floor(time)
+
+                            $('#fast-name').text(hardFastTime.name)
+                            $('#fast-time').text(hardFastTime.time)
+
+                            localStorage.hardMines = JSON.stringify(hardFastTime)
+                        })
+                    }
+                    else {
+                        Swal.fire({
+                            title: '過關',
+                            text: `經過時間 : ${Math.floor(time)}`
+                        })
+                    }
+
                     $('#game-area').css('pointer-events', 'none')
                     clearInterval(intervalID)
                 }
@@ -249,11 +359,14 @@
             $(this).css('display', 'none')
             $(this).parent().removeClass('closed')
 
+            // 如果點到地雷
             if ($(this).parent().hasClass('mines')) {
+                // 打開所有地雷
                 $('.mines').children().css('display', 'none')
                 $('.mines').removeClass('closed')
             }
             else {
+                // 印出周圍地雷數
                 $(this).parent().text(numOfMines($(this)))
             }
         })
