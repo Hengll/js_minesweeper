@@ -54,6 +54,13 @@
         }
 
         .flag {
+            width: 25px;
+            height: 25px;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            position: absolute;
+            top: -1px;
+            left: -1px;
             background-image: url(./images/flag.png),
                 linear-gradient(135deg, black, blue);
             background-size: 100%;
@@ -77,6 +84,7 @@
             <option value="中級">中級</option>
             <option value="高級">高級</option>
         </select>
+        <input id="start" type="button" value="點擊後開始遊戲">
     </div>
     <div id="text">
         <div>經過時間: <span id="time-left">0</span> 秒</div>
@@ -88,19 +96,16 @@
         crossorigin='anonymous'></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        // 地雷數量
-        let mines = 10
-        // 格子每邊總數
-        let lattices = 10
+        // 紀錄計時器ID，用來清除計時器
+        let intervalID
         // 計算經過時間
         let time = 0
+        // 預設地雷數量
+        let mines = 10
+        // 預設每列格子數
+        let = lattices = 10
 
-        // 決定遊戲區域長寬
-        $('#game-area').css('width', `${25 * lattices}px`)
-        $('#game-area').css('hight', `${25 * lattices}px`)
-        $('#mines-left').text(mines)
-
-        // 隨機函數，最小值/最大值/抽幾個(不重複)
+        // 隨機函數，最小值/最大值/抽幾個(不重複)，回傳陣列
         const rand = (min, max, n) => {
             const returnNums = []
             const nums = Array.from({ length: max - min + 1 }, (value, index) => {
@@ -117,16 +122,39 @@
             })
             return returnNums
         }
-        // 隨機地雷位置
-        const minesPos = rand(0, lattices ** 2 - 1, mines)
 
-        // 生成地雷
-        for (let i = 0; i < lattices ** 2; i++) {
-            if (minesPos.includes(i)) {
-                $('#game-area').append(`<div id="x${i % lattices}-y${Math.floor(i / lattices)}" class="mines closed"><div class="cover"></div></div>`)
-            }
-            else {
-                $('#game-area').append(`<div id="x${i % lattices}-y${Math.floor(i / lattices)}" class="not-mines closed"><div class="cover"></div></div>`)
+        // mine為地雷數量，lattice為每列的格子數
+        const game = function (mine, lattice) {
+            // 決定遊戲區域長寬
+            $('#game-area').css('width', `${25 * lattice}px`)
+            $('#game-area').css('hight', `${25 * lattice}px`)
+            // 地雷數量重置
+            mines = mine
+            $('#mines-left').text(mine)
+            // 遊戲開始前鎖定遊戲區域事件
+            $('#game-area').css('pointer-events', 'none')
+
+            // 時間歸零
+            time = 0
+            $('#time-left').text(time)
+
+            // 清除計時器
+            clearInterval(intervalID)
+
+            // 清空遊戲區域
+            $('#game-area').empty()
+
+            // 隨機地雷位置
+            const minesPos = rand(0, lattice ** 2 - 1, mines)
+
+            // 生成地雷
+            for (let i = 0; i < lattice ** 2; i++) {
+                if (minesPos.includes(i)) {
+                    $('#game-area').append(`<div id="x${i % lattice}-y${Math.floor(i / lattice)}" class="mines closed"><div class="cover"></div></div>`)
+                }
+                else {
+                    $('#game-area').append(`<div id="x${i % lattice}-y${Math.floor(i / lattice)}" class="not-mines closed"><div class="cover"></div></div>`)
+                }
             }
         }
 
@@ -148,7 +176,7 @@
                 }
             }
 
-            // 如果sum=0，採周圍地雷
+            // 如果sum=0，採周圍地雷(連鎖踩地雷)
             if (sum === 0) {
                 for (let i = x - 1; i <= x + 1; i++) {
                     if (i >= 0 && i < 25) {
@@ -165,6 +193,52 @@
             }
             return sum
         }
+
+
+        // 選擇難度
+        $('select').on('input', function () {
+            if ($('select').val() === '初級') {
+                game(10, 10)
+            }
+            else if ($('select').val() === '中級') {
+                game(45, 16)
+            }
+            else {
+                game(99, 25)
+            }
+        })
+
+        // 點擊開始遊戲
+        $('#start').on('click', function () {
+            // 觸發難度選擇
+            $('select').trigger('input')
+            // 開啟遊戲區域事件
+            $('#game-area').css('pointer-events', 'auto')
+
+            // 檢查過關/爆炸
+            intervalID = setInterval(function () {
+                // 計時並顯示
+                time += 0.1
+                $('#time-left').text(Math.floor(time))
+
+                if (!$('.mines').hasClass('closed')) {
+                    Swal.fire({
+                        title: "炸!!!",
+                        text: "炸!!!",
+                    });
+                    $('#game-area').css('pointer-events', 'none')
+                    clearInterval(intervalID)
+                }
+                if (!$('.not-mines').hasClass('closed')) {
+                    Swal.fire({
+                        title: "過關",
+                        text: "過關",
+                    });
+                    $('#game-area').css('pointer-events', 'none')
+                    clearInterval(intervalID)
+                }
+            }, 100)
+        })
 
         // 遊戲區域鎖住滑鼠右鍵選單
         $('#game-area').on('contextmenu', function (event) {
@@ -185,41 +259,24 @@
             }
         })
 
-        // 右鍵插/拔旗子
+        // 右鍵插旗子
         $('#game-area').on('contextmenu', '.cover', function () {
-            if ($(this).hasClass('flag')) {
-                $(this).removeClass('flag')
-                mines++
-                $('#mines-left').text(mines)
-            }
-            else {
-                $(this).addClass('flag')
-                mines--
-                $('#mines-left').text(mines)
-            }
+            $(this).removeClass('cover')
+            $(this).addClass('flag')
+            mines--
+            $('#mines-left').text(mines)
         })
 
-        // 檢查過關/爆炸
-        const clear = setInterval(function () {
-            time += 0.1
-            $('#time-left').text(Math.floor(time))
-            if (!$('.mines').hasClass('closed')) {
-                Swal.fire({
-                    title: "炸!!!",
-                    text: "炸!!!",
-                });
-                $('#game-area').css('pointer-events', 'none')
-                clearInterval(clear)
-            }
-            if (!$('.not-mines').hasClass('closed')) {
-                Swal.fire({
-                    title: "過關",
-                    text: "過關",
-                });
-                $('#game-area').css('pointer-events', 'none')
-                clearInterval(clear)
-            }
-        }, 100)
+        // 右鍵拔旗子
+        $('#game-area').on('contextmenu', '.flag', function () {
+            $(this).removeClass('flag')
+            $(this).addClass('cover')
+            mines++
+            $('#mines-left').text(mines)
+        })
+
+        // 預設為初級版面
+        game(mines, lattices)
     </script>
 </body>
 
