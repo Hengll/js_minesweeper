@@ -224,16 +224,15 @@
                 if (!$('.mines').hasClass('closed')) {
                     Swal.fire({
                         title: "炸!!!",
-                        text: "炸!!!",
-                    });
+                    })
                     $('#game-area').css('pointer-events', 'none')
                     clearInterval(intervalID)
                 }
                 if (!$('.not-mines').hasClass('closed')) {
                     Swal.fire({
                         title: "過關",
-                        text: "過關",
-                    });
+                        text: `過關時間 : ${Math.floor(time)} 秒`,
+                    })
                     $('#game-area').css('pointer-events', 'none')
                     clearInterval(intervalID)
                 }
